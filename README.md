@@ -109,7 +109,7 @@ Both targets share one workspace; the catalog is the isolation boundary.
 | Schema | Tables |
 |--------|--------|
 | `bronze` | `bronze_bls_data`, `bronze_bls_series`, `bronze_bls_sector`, `bronze_bls_class`, `bronze_bls_measure`, `bronze_bls_duration`, `bronze_population` |
-| `silver` | `silver_bls`, `silver_population` |
+| `silver` | `silver_bls`, `silver_population`, `silver_population_coverage` |
 | `gold` | `gold_q1_pop_stats`, `gold_q2_best_year`, `gold_q3_value_pop` |
 
 The pipeline's default schema is `bronze`; the silver and gold datasets publish to their
@@ -180,6 +180,11 @@ databricks bundle run rearc_quest_tests --target dev   # on serverless, no local
 
 The serverless runner copies sources to a temp directory first, because pytest's
 assertion rewriter cannot write `__pycache__` into a `/Workspace` path.
+
+The serverless job exists so the suite is runnable without a local Spark install. It is
+not how this would be run for a real client — there, pytest runs in CI on every pull
+request and gates the merge, and the runner file is unnecessary. See *Trade-offs* in
+[PROCESS.md](PROCESS.md).
 
 ## Dashboard and Genie
 
