@@ -1,0 +1,23 @@
+# Unit test job — runs the pytest suite on serverless compute.
+#
+# Separate from the ingestion job on purpose: tests should be runnable on demand and in
+# CI without touching the landing zone or triggering a pipeline refresh, and a red suite
+# should not be entangled with a data load.
+#
+#   databricks bundle run rearc_quest_tests --target dev
+
+resources:
+  jobs:
+    rearc_quest_tests:
+      name: rearc_quest_tests
+
+      # No schedule: this runs on demand and in CI, not on a clock.
+      email_notifications:
+        on_failure:
+          - bcodernet@gmail.com
+
+      tasks:
+        - task_key: unit_tests
+          notebook_task:
+            notebook_path: ../tests/run_tests.py
+            source: WORKSPACE

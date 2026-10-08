@@ -2,26 +2,29 @@
 """
 Gold Q1: Mean and standard deviation of annual US population
 across 2013-2018 inclusive.
-Reads from silver_population in dev.silver schema.
+
+I/O wrapper only. The logic lives in `transformations.population_stats`, which is
+unit-tested in tests/test_transformations.py.
+
+Publishes to the gold schema via a multipart decorator name; reads silver_population
+from the silver schema in the same catalog.
 """
-import dlt
-from pyspark.sql.functions import *
+from pyspark import pipelines as dp
 
-catalog = spark.conf.get("catalog")
+from transformations import population_stats
+
 silver_schema = spark.conf.get("silver_schema")
+gold_schema = spark.conf.get("gold_schema")
 
 
-@dlt.table(
-    name="gold_q1_pop_stats",
+@dp.materialized_view(
+    name=f"{gold_schema}.gold_q1_pop_stats",
     comment="Mean and stddev of US population 2013-2018",
     table_properties={"quality": "gold"},
 )
 def gold_q1_pop_stats():
-    return (
-        spark.read.table(f"{catalog}.{silver_schema}.silver_population")
-        .filter(col("year").between(2013, 2018))
-        .select(
-            round(mean("population"), 2).alias("mean_population"),
-            round(stddev("population"), 2).alias("stddev_population"),
-        )
+    return population_stats(
+        spark.read.table(f"{silver_schema}.silver_population"),
+        start_year=2013,
+        end_year=2018,
     )

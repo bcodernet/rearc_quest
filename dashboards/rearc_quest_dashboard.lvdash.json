@@ -44,14 +44,40 @@
         {
           "widget": {
             "name": "mean_pop",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "q1_pop_stats",
+                  "fields": [
+                    {
+                      "name": "mean_population",
+                      "expression": "`mean_population`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
             "spec": {
-              "widgetType": "big_value",
-              "dataset": "q1_pop_stats",
-              "field": "mean_population",
-              "title": "Mean US Population (2013-2018)",
-              "formatter": {
-                "type": "number",
-                "decimalPlaces": 0
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "mean_population",
+                  "displayName": "Mean US Population",
+                  "format": {
+                    "type": "number-plain",
+                    "decimalPlaces": {
+                      "type": "exact",
+                      "places": 0
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Mean US Population (2013-2018)"
               }
             }
           },
@@ -65,14 +91,40 @@
         {
           "widget": {
             "name": "stddev_counter",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "q1_pop_stats",
+                  "fields": [
+                    {
+                      "name": "stddev_population",
+                      "expression": "`stddev_population`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
             "spec": {
-              "widgetType": "big_value",
-              "dataset": "q1_pop_stats",
-              "field": "stddev_population",
-              "title": "StdDev US Population",
-              "formatter": {
-                "type": "number",
-                "decimalPlaces": 2
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "stddev_population",
+                  "displayName": "StdDev US Population",
+                  "format": {
+                    "type": "number-plain",
+                    "decimalPlaces": {
+                      "type": "exact",
+                      "places": 2
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "StdDev US Population (2013-2018)"
               }
             }
           },
@@ -85,15 +137,50 @@
         },
         {
           "widget": {
-            "name": "top_10_bar",
+            "name": "q3_value_chart",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "q3_value_pop",
+                  "fields": [
+                    {
+                      "name": "year",
+                      "expression": "`year`"
+                    },
+                    {
+                      "name": "value",
+                      "expression": "`value`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
             "spec": {
-              "widgetType": "bar",
-              "dataset": "top_10_series",
-              "x": "series_title",
-              "y": [
-                "yearly_sum"
-              ],
-              "title": "Top 10 Series by Yearly Sum"
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "year",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "Year"
+                },
+                "y": {
+                  "fieldName": "value",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Value"
+                }
+              },
+              "frame": {
+                "showDescription": false,
+                "showTitle": true,
+                "title": "Q3: PRS30006032 Q01 value by year"
+              }
             }
           },
           "position": {
@@ -106,14 +193,48 @@
         {
           "widget": {
             "name": "population_trend_chart",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "population_trend",
+                  "fields": [
+                    {
+                      "name": "year",
+                      "expression": "`year`"
+                    },
+                    {
+                      "name": "population",
+                      "expression": "`population`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
             "spec": {
+              "version": 3,
               "widgetType": "line",
-              "dataset": "population_trend",
-              "x": "year",
-              "y": [
-                "population"
-              ],
-              "title": "US Population Trend"
+              "encodings": {
+                "x": {
+                  "fieldName": "year",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "Year"
+                },
+                "y": {
+                  "fieldName": "population",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Population"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "US Population Trend (ACS 1-year; 2020 not published)"
+              }
             }
           },
           "position": {
@@ -125,17 +246,52 @@
         },
         {
           "widget": {
-            "name": "best_year_table",
+            "name": "top_10_bar",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "top_10_series",
+                  "fields": [
+                    {
+                      "name": "series_title",
+                      "expression": "`series_title`"
+                    },
+                    {
+                      "name": "sum(yearly_sum)",
+                      "expression": "SUM(`yearly_sum`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
             "spec": {
-              "widgetType": "table",
-              "dataset": "q2_best_year",
-              "columns": [
-                "series_id",
-                "series_title",
-                "year",
-                "yearly_sum"
-              ],
-              "title": "Best Year per BLS Series"
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "sum(yearly_sum)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Yearly Sum"
+                },
+                "y": {
+                  "fieldName": "series_title",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "x-reversed"
+                    }
+                  },
+                  "displayName": "Series"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Top 10 Series by Yearly Sum"
+              }
             }
           },
           "position": {
@@ -143,6 +299,177 @@
             "y": 10,
             "width": 12,
             "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "best_year_table",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "q2_best_year",
+                  "fields": [
+                    {
+                      "name": "series_id",
+                      "expression": "`series_id`"
+                    },
+                    {
+                      "name": "series_title",
+                      "expression": "`series_title`"
+                    },
+                    {
+                      "name": "year",
+                      "expression": "`year`"
+                    },
+                    {
+                      "name": "yearly_sum",
+                      "expression": "`yearly_sum`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "allowHTMLByDefault": false,
+              "condensed": true,
+              "encodings": {
+                "columns": [
+                  {
+                    "alignContent": "left",
+                    "allowHTML": false,
+                    "allowSearch": true,
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "dateTimeFormat": "YYYY-MM-DD",
+                    "displayAs": "string",
+                    "highlightLinks": false,
+                    "imageHeight": "",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageUrlTemplate": "{{ @ }}",
+                    "imageWidth": "",
+                    "linkOpenInNewTab": true,
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "preserveWhitespace": false,
+                    "type": "string",
+                    "useMonospaceFont": false,
+                    "visible": true,
+                    "fieldName": "series_id",
+                    "displayName": "series_id",
+                    "title": "Series ID",
+                    "order": 0
+                  },
+                  {
+                    "alignContent": "left",
+                    "allowHTML": false,
+                    "allowSearch": true,
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "dateTimeFormat": "YYYY-MM-DD",
+                    "displayAs": "string",
+                    "highlightLinks": false,
+                    "imageHeight": "",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageUrlTemplate": "{{ @ }}",
+                    "imageWidth": "",
+                    "linkOpenInNewTab": true,
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "preserveWhitespace": false,
+                    "type": "string",
+                    "useMonospaceFont": false,
+                    "visible": true,
+                    "fieldName": "series_title",
+                    "displayName": "series_title",
+                    "title": "Series",
+                    "order": 1
+                  },
+                  {
+                    "alignContent": "right",
+                    "allowHTML": false,
+                    "allowSearch": false,
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "dateTimeFormat": "YYYY-MM-DD",
+                    "displayAs": "number",
+                    "highlightLinks": false,
+                    "imageHeight": "",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageUrlTemplate": "{{ @ }}",
+                    "imageWidth": "",
+                    "linkOpenInNewTab": true,
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "preserveWhitespace": false,
+                    "type": "integer",
+                    "useMonospaceFont": false,
+                    "visible": true,
+                    "fieldName": "year",
+                    "displayName": "year",
+                    "title": "Best Year",
+                    "order": 2,
+                    "numberFormat": "0"
+                  },
+                  {
+                    "alignContent": "right",
+                    "allowHTML": false,
+                    "allowSearch": false,
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "dateTimeFormat": "YYYY-MM-DD",
+                    "displayAs": "number",
+                    "highlightLinks": false,
+                    "imageHeight": "",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageUrlTemplate": "{{ @ }}",
+                    "imageWidth": "",
+                    "linkOpenInNewTab": true,
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "preserveWhitespace": false,
+                    "type": "float",
+                    "useMonospaceFont": false,
+                    "visible": true,
+                    "fieldName": "yearly_sum",
+                    "displayName": "yearly_sum",
+                    "title": "Yearly Sum (Q01-Q04)",
+                    "order": 3,
+                    "numberFormat": "0.00"
+                  }
+                ]
+              },
+              "frame": {
+                "showDescription": false,
+                "showTitle": true,
+                "title": "Best Year per BLS Series (ties retained)"
+              },
+              "invisibleColumns": [],
+              "itemsPerPage": 25,
+              "paginationSize": "default",
+              "version": 1,
+              "widgetType": "table",
+              "withRowNumber": false
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 17,
+            "width": 12,
+            "height": 8
           }
         }
       ],

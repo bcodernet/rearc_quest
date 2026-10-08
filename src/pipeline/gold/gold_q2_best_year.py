@@ -2,37 +2,34 @@
 """
 Gold Q2: For every series_id, find the best year
 (year with the largest sum of value across all quarters).
-Includes human-readable series_title.
-Reads from silver_bls in dev.silver schema.
+
+I/O wrapper only. The period handling -- excluding the Q05 annual average for series
+that publish real quarters, and falling back to it for the 45 annual-only series -- and
+the tie behavior both live in `transformations.best_year`, which is unit-tested in
+tests/test_transformations.py. See that function's docstring for why a blanket
+`period != 'Q05'` filter is wrong.
+
+Current output: 286 rows across 282 series (4 series tie for their best year).
+
+Publishes to the gold schema via a multipart decorator name; reads silver_bls from the
+silver schema in the same catalog.
 """
-import dlt
-from pyspark.sql.functions import *
-from pyspark.sql.window import Window
+from pyspark import pipelines as dp
 
-catalog = spark.conf.get("catalog")
+from transformations import best_year
+
 silver_schema = spark.conf.get("silver_schema")
+gold_schema = spark.conf.get("gold_schema")
 
 
-@dlt.table(
-    name="gold_q2_best_year",
-    comment="Best year (max summed value) per BLS series",
+@dp.materialized_view(
+    name=f"{gold_schema}.gold_q2_best_year",
+    comment=(
+        "Best year per BLS series by summed value. Quarterly series sum Q01-Q04 "
+        "(Q05 is the annual average and is excluded); the 45 annual-only series use Q05. "
+        "Ties are retained, so a series may contribute more than one row."
+    ),
     table_properties={"quality": "gold"},
 )
 def gold_q2_best_year():
-    silver = spark.read.table(f"{catalog}.{silver_schema}.silver_bls")
-
-    yearly_sums = (
-        silver
-        .groupBy("series_id", "year", "series_title")
-        .agg(round(sum("value"), 2).alias("yearly_sum"))
-    )
-
-    w = Window.partitionBy("series_id").orderBy(col("yearly_sum").desc())
-
-    return (
-        yearly_sums
-        .withColumn("rank", rank().over(w))
-        .filter(col("rank") == 1)
-        .drop("rank")
-        .select("series_id", "series_title", "year", "yearly_sum")
-    )
+    return best_year(spark.read.table(f"{silver_schema}.silver_bls"))

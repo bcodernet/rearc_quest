@@ -7,7 +7,9 @@ bundle:
 
 variables:
   catalog:
-    description: Unity Catalog where all schemas and tables live
+    description: >-
+      Unity Catalog where all schemas and tables live. Overridden per target below, so
+      `--target prod` publishes into the prod catalog rather than on top of dev data.
     default: dev
 
   bronze_schema:
@@ -27,8 +29,12 @@ variables:
     default: raw
 
   warehouse_id:
-    description: SQL warehouse for dashboard queries
-    default: 321628805110da33
+    description: >-
+      SQL warehouse backing the dashboard and Genie space. Resolved by name at deploy
+      time rather than hardcoded, so the bundle is portable across workspaces where the
+      warehouse ID differs.
+    lookup:
+      warehouse: Serverless Starter Warehouse
 
 include:
   - resources/*.yml
@@ -38,12 +44,18 @@ targets:
   dev:
     mode: development
     default: true
+    variables:
+      catalog: dev
     workspace:
       host: https://dbc-75fe95ff-8201.cloud.databricks.com
 
-  # Production target — stable root path and run-as identity
+  # Production target — stable root path and run-as identity.
+  # Shares one workspace with dev (trial account), so catalog is the isolation
+  # boundary: prod publishes to the `prod` catalog and never touches dev data.
   prod:
     mode: production
+    variables:
+      catalog: prod
     workspace:
       host: https://dbc-75fe95ff-8201.cloud.databricks.com
       root_path: /Users/bcodernet@gmail.com/.bundle/${bundle.name}/${bundle.target}

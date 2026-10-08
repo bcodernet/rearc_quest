@@ -1,47 +1,48 @@
 # Databricks notebook source
 """
 Silver layer: Cleaned BLS time-series data.
-Reads from bronze tables in dev.bronze schema.
-- Cast types (year INT, value DECIMAL(10,2))
+
+Publishes to the silver schema via a multipart decorator name; the bronze tables it
+reads are in the pipeline's default schema, so they are referenced unqualified and
+SDP wires up the dependency automatically.
+
+- Cast types (year INT, value DOUBLE rounded to 2dp)
 - Trim series_id and all code columns (BLS pads with trailing spaces)
 - Dedup by (series_id, year, period)
 - Join series metadata and lookup tables for human-readable labels
 """
-import dlt
-from pyspark.sql.functions import *
+from pyspark import pipelines as dp
+from pyspark.sql import functions as F
 
-catalog = spark.conf.get("catalog")
-bronze_schema = spark.conf.get("bronze_schema")
-
-bronze = f"{catalog}.{bronze_schema}"
+silver_schema = spark.conf.get("silver_schema")
 
 
-@dlt.table(
-    name="silver_bls",
+@dp.table(
+    name=f"{silver_schema}.silver_bls",
     comment="Cleansed and deduped BLS data with human-readable series labels",
     table_properties={"quality": "silver"},
 )
 def silver_bls():
-    data = spark.read.table(f"{bronze}.bronze_bls_data")
+    data = spark.read.table("bronze_bls_data")
     series = (
-        spark.read.table(f"{bronze}.bronze_bls_series")
+        spark.read.table("bronze_bls_series")
         .select("series_id", "sector_code", "class_code", "measure_code", "duration_code", "seasonal")
-        .withColumn("series_id", trim(col("series_id")))
-        .withColumn("sector_code", trim(col("sector_code")))
-        .withColumn("class_code", trim(col("class_code")))
-        .withColumn("measure_code", trim(col("measure_code")))
-        .withColumn("duration_code", trim(col("duration_code")))
+        .withColumn("series_id", F.trim(F.col("series_id")))
+        .withColumn("sector_code", F.trim(F.col("sector_code")))
+        .withColumn("class_code", F.trim(F.col("class_code")))
+        .withColumn("measure_code", F.trim(F.col("measure_code")))
+        .withColumn("duration_code", F.trim(F.col("duration_code")))
     )
-    sector = spark.read.table(f"{bronze}.bronze_bls_sector").select("sector_code", "sector_name")
-    cls = spark.read.table(f"{bronze}.bronze_bls_class").select("class_code", "class_text")
-    measure = spark.read.table(f"{bronze}.bronze_bls_measure").select("measure_code", "measure_text")
-    duration = spark.read.table(f"{bronze}.bronze_bls_duration").select("duration_code", "duration_text")
+    sector = spark.read.table("bronze_bls_sector").select("sector_code", "sector_name")
+    cls = spark.read.table("bronze_bls_class").select("class_code", "class_text")
+    measure = spark.read.table("bronze_bls_measure").select("measure_code", "measure_text")
+    duration = spark.read.table("bronze_bls_duration").select("duration_code", "duration_text")
 
     return (
         data
-        .withColumn("series_id", trim(col("series_id")))
-        .withColumn("year", col("year").cast("int"))
-        .withColumn("value", round(col("value").cast("double"), 2))
+        .withColumn("series_id", F.trim(F.col("series_id")))
+        .withColumn("year", F.col("year").cast("int"))
+        .withColumn("value", F.round(F.col("value").cast("double"), 2))
         .dropDuplicates(["series_id", "year", "period"])
         .join(series, on="series_id", how="left")
         .join(sector, on="sector_code", how="left")
@@ -50,6 +51,6 @@ def silver_bls():
         .join(duration, on="duration_code", how="left")
         .withColumn(
             "series_title",
-            concat_ws(", ", col("sector_name"), col("class_text"), col("measure_text"), col("duration_text"))
+            F.concat_ws(", ", F.col("sector_name"), F.col("class_text"), F.col("measure_text"), F.col("duration_text"))
         )
     )
