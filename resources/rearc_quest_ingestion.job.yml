@@ -1,0 +1,41 @@
+# Ingestion + pipeline orchestration job
+# Chains: download_bls → download_population → bronze → silver → gold
+
+resources:
+  jobs:
+    rearc_quest_ingestion:
+      name: rearc_quest_ingestion
+
+      tasks:
+        # Step 1: Download raw data to the UC volume
+        - task_key: download_bls
+          notebook_task:
+            notebook_path: ../src/ingestion/download_bls.py
+            source: WORKSPACE
+
+        - task_key: download_population
+          notebook_task:
+            notebook_path: ../src/ingestion/download_population.py
+            source: WORKSPACE
+
+        # Step 2: Bronze pipeline (raw → typed)
+        - task_key: trigger_bronze_pipeline
+          depends_on:
+            - task_key: download_bls
+            - task_key: download_population
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.rearc_quest_bronze_pipeline.id}
+
+        # Step 3: Silver pipeline (cleansed)
+        - task_key: trigger_silver_pipeline
+          depends_on:
+            - task_key: trigger_bronze_pipeline
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.rearc_quest_silver_pipeline.id}
+
+        # Step 4: Gold pipeline (analytical answers)
+        - task_key: trigger_gold_pipeline
+          depends_on:
+            - task_key: trigger_silver_pipeline
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.rearc_quest_gold_pipeline.id}

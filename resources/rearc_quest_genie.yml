@@ -1,0 +1,12 @@
+# Genie Agent for Rearc Data Quest — natural language Q&A over gold + silver tables
+
+resources:
+  genie_spaces:
+    rearc_quest_genie:
+      title: 'Rearc Data Quest'
+      description: 'Ask questions about BLS labor statistics and US population data in natural language'
+      warehouse_id: ${var.warehouse_id}
+      file_path: ../genie/rearc_quest_genie.geniespace.json
+      permissions:
+        - level: CAN_RUN
+          group_name: users

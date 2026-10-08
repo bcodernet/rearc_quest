@@ -1,0 +1,158 @@
+{
+  "datasets": [
+    {
+      "name": "q1_pop_stats",
+      "displayName": "Q1: Population Stats",
+      "queryLines": [
+        "SELECT mean_population, stddev_population FROM gold_q1_pop_stats"
+      ]
+    },
+    {
+      "name": "q2_best_year",
+      "displayName": "Q2: Best Year per Series",
+      "queryLines": [
+        "SELECT series_id, series_title, year, yearly_sum FROM gold_q2_best_year ORDER BY yearly_sum DESC"
+      ]
+    },
+    {
+      "name": "q3_value_pop",
+      "displayName": "Q3: PRS30006032 Q01 + Population",
+      "queryLines": [
+        "SELECT year, value, population FROM gold_q3_value_pop ORDER BY year"
+      ]
+    },
+    {
+      "name": "top_10_series",
+      "displayName": "Top 10 Series by Yearly Sum",
+      "queryLines": [
+        "SELECT series_title, yearly_sum FROM gold_q2_best_year ORDER BY yearly_sum DESC LIMIT 10"
+      ]
+    },
+    {
+      "name": "population_trend",
+      "displayName": "US Population Trend",
+      "queryLines": [
+        "SELECT year, population FROM gold_q3_value_pop WHERE population IS NOT NULL ORDER BY year"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "rearc_data_quest",
+      "displayName": "Rearc Data Quest",
+      "layout": [
+        {
+          "widget": {
+            "name": "mean_pop",
+            "spec": {
+              "widgetType": "big_value",
+              "dataset": "q1_pop_stats",
+              "field": "mean_population",
+              "title": "Mean US Population (2013-2018)",
+              "formatter": {
+                "type": "number",
+                "decimalPlaces": 0
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 6,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "stddev_counter",
+            "spec": {
+              "widgetType": "big_value",
+              "dataset": "q1_pop_stats",
+              "field": "stddev_population",
+              "title": "StdDev US Population",
+              "formatter": {
+                "type": "number",
+                "decimalPlaces": 2
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 0,
+            "width": 6,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "top_10_bar",
+            "spec": {
+              "widgetType": "bar",
+              "dataset": "top_10_series",
+              "x": "series_title",
+              "y": [
+                "yearly_sum"
+              ],
+              "title": "Top 10 Series by Yearly Sum"
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 3,
+            "width": 6,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "population_trend_chart",
+            "spec": {
+              "widgetType": "line",
+              "dataset": "population_trend",
+              "x": "year",
+              "y": [
+                "population"
+              ],
+              "title": "US Population Trend"
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 3,
+            "width": 6,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "best_year_table",
+            "spec": {
+              "widgetType": "table",
+              "dataset": "q2_best_year",
+              "columns": [
+                "series_id",
+                "series_title",
+                "year",
+                "yearly_sum"
+              ],
+              "title": "Best Year per BLS Series"
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 10,
+            "width": 12,
+            "height": 7
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS"
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "widgetHeaderAlignment": "ALIGNMENT_UNSPECIFIED"
+    },
+    "applyModeEnabled": false
+  }
+}

@@ -1,0 +1,27 @@
+# Gold SDP pipeline — reads from dev.silver → publishes to dev.gold
+
+resources:
+  pipelines:
+    rearc_quest_gold_pipeline:
+      name: rearc_quest_gold_pipeline
+
+      catalog: ${var.catalog}
+      target: ${var.gold_schema}
+
+      channel: current
+      serverless: true      
+      continuous: false
+      photon: true
+
+      configuration:
+        catalog: ${var.catalog}
+        silver_schema: ${var.silver_schema}
+        gold_schema: ${var.gold_schema}
+
+      libraries:
+        - notebook:
+            path: ../src/pipeline/gold/gold_q1_pop_stats.py
+        - notebook:
+            path: ../src/pipeline/gold/gold_q2_best_year.py
+        - notebook:
+            path: ../src/pipeline/gold/gold_q3_value_pop.py

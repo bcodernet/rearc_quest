@@ -218,3 +218,10 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Databricks bundle artifacts
+.databricks/
+.bundle/
+
+# Databricks local state
+*.state/
