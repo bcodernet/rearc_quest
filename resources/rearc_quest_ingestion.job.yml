@@ -1,10 +1,43 @@
 # Ingestion + pipeline orchestration job
-# Chains: download_bls → download_population → bronze → silver → gold
+# Chains: download_bls + download_population -> rearc_quest_pipeline (bronze/silver/gold)
+#
+# The pipeline resolves bronze -> silver -> gold ordering itself from the table
+# dependencies, so this job only needs to land the raw files and then trigger it once.
 
 resources:
   jobs:
     rearc_quest_ingestion:
       name: rearc_quest_ingestion
+
+      # Daily at 07:00 UTC. BLS publishes on a weekday schedule and the whole folder is
+      # under 5MB, so a daily full refresh is both sufficient and cheap.
+      #
+      # Deliberately PAUSED: this is a trial workspace and an unattended daily run would
+      # burn serverless compute for no reason. The schedule is committed rather than
+      # omitted so the intent is visible in code — flip to UNPAUSED to activate.
+      schedule:
+        quartz_cron_expression: '0 0 7 * * ?'
+        timezone_id: UTC
+        pause_status: PAUSED
+
+      # A silent failure here means the gold tables quietly serve stale data, so the
+      # ingestion script fails the task on any download error (see download_bls.py) and
+      # that failure needs to reach a human.
+      email_notifications:
+        on_failure:
+          - bcodernet@gmail.com
+
+      # Job-level parameters (preferred over task-level base_parameters) so the
+      # ingestion notebooks write to the deploy target's catalog rather than a
+      # hardcoded `dev`. Each becomes a widget the notebooks read via
+      # dbutils.widgets.get().
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: bronze_schema
+          default: ${var.bronze_schema}
+        - name: volume_name
+          default: ${var.volume_name}
 
       tasks:
         # Step 1: Download raw data to the UC volume
@@ -18,24 +51,10 @@ resources:
             notebook_path: ../src/ingestion/download_population.py
             source: WORKSPACE
 
-        # Step 2: Bronze pipeline (raw → typed)
-        - task_key: trigger_bronze_pipeline
+        # Step 2: One pipeline run builds all three layers
+        - task_key: run_pipeline
           depends_on:
             - task_key: download_bls
             - task_key: download_population
           pipeline_task:
-            pipeline_id: ${resources.pipelines.rearc_quest_bronze_pipeline.id}
-
-        # Step 3: Silver pipeline (cleansed)
-        - task_key: trigger_silver_pipeline
-          depends_on:
-            - task_key: trigger_bronze_pipeline
-          pipeline_task:
-            pipeline_id: ${resources.pipelines.rearc_quest_silver_pipeline.id}
-
-        # Step 4: Gold pipeline (analytical answers)
-        - task_key: trigger_gold_pipeline
-          depends_on:
-            - task_key: trigger_silver_pipeline
-          pipeline_task:
-            pipeline_id: ${resources.pipelines.rearc_quest_gold_pipeline.id}
+            pipeline_id: ${resources.pipelines.rearc_quest_pipeline.id}
