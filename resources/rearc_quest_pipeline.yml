@@ -1,0 +1,43 @@
+# Single SDP pipeline — bronze -> silver -> gold as one DAG.
+#
+# Tables still land in three schemas: the pipeline's default schema is bronze, and the
+# silver/gold datasets use multipart names in their decorators
+# (@dp.table(name=f"{silver_schema}.silver_bls")) to publish elsewhere in the same
+# catalog. That keeps the three-zone layout while regaining the single lineage graph,
+# one expectations view, and automatic topological ordering that three chained
+# pipelines gave up.
+
+resources:
+  pipelines:
+    rearc_quest_pipeline:
+      name: rearc_quest_pipeline
+
+      catalog: ${var.catalog}
+      schema: ${var.bronze_schema}
+
+      channel: current
+      serverless: true
+      continuous: false
+
+      configuration:
+        catalog: ${var.catalog}
+        bronze_schema: ${var.bronze_schema}
+        silver_schema: ${var.silver_schema}
+        gold_schema: ${var.gold_schema}
+        volume_name: ${var.volume_name}
+
+      libraries:
+        - notebook:
+            path: ../src/pipeline/bronze/bronze_bls.py
+        - notebook:
+            path: ../src/pipeline/bronze/bronze_population.py
+        - notebook:
+            path: ../src/pipeline/silver/silver_bls.py
+        - notebook:
+            path: ../src/pipeline/silver/silver_population.py
+        - notebook:
+            path: ../src/pipeline/gold/gold_q1_pop_stats.py
+        - notebook:
+            path: ../src/pipeline/gold/gold_q2_best_year.py
+        - notebook:
+            path: ../src/pipeline/gold/gold_q3_value_pop.py
