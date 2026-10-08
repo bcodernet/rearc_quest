@@ -1,0 +1,51 @@
+# Declarative Automation Bundle configuration
+# Docs: https://docs.databricks.com/en/dev-tools/bundles/settings.html
+
+bundle:
+  name: rearc_quest
+  engine: direct  # required for genie_spaces resources
+
+variables:
+  catalog:
+    description: Unity Catalog where all schemas and tables live
+    default: dev
+
+  bronze_schema:
+    description: Schema for bronze (raw) tables
+    default: bronze
+
+  silver_schema:
+    description: Schema for silver (cleansed) tables
+    default: silver
+
+  gold_schema:
+    description: Schema for gold (analytical) tables
+    default: gold
+
+  volume_name:
+    description: UC Volume under the bronze schema for raw file landing
+    default: raw
+
+  warehouse_id:
+    description: SQL warehouse for dashboard queries
+    default: 321628805110da33
+
+include:
+  - resources/*.yml
+
+targets:
+  # Development target — default for local iteration
+  dev:
+    mode: development
+    default: true
+    workspace:
+      host: https://dbc-75fe95ff-8201.cloud.databricks.com
+
+  # Production target — stable root path and run-as identity
+  prod:
+    mode: production
+    workspace:
+      host: https://dbc-75fe95ff-8201.cloud.databricks.com
+      root_path: /Users/bcodernet@gmail.com/.bundle/${bundle.name}/${bundle.target}
+    run_as:
+      user_name: bcodernet@gmail.com

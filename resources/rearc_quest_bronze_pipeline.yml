@@ -1,0 +1,25 @@
+# Bronze SDP pipeline — raw data from UC volume → dev.bronze schema
+
+resources:
+  pipelines:
+    rearc_quest_bronze_pipeline:
+      name: rearc_quest_bronze_pipeline
+
+      catalog: ${var.catalog}
+      target: ${var.bronze_schema}
+
+      channel: current
+      serverless: true      
+      continuous: false
+      photon: true
+
+      configuration:
+        catalog: ${var.catalog}
+        bronze_schema: ${var.bronze_schema}
+        volume_name: ${var.volume_name}
+
+      libraries:
+        - notebook:
+            path: ../src/pipeline/bronze/bronze_bls.py
+        - notebook:
+            path: ../src/pipeline/bronze/bronze_population.py

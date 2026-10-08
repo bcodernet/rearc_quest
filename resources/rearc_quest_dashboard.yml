@@ -1,0 +1,10 @@
+# Lakeview dashboard for Rearc Data Quest gold layer
+
+resources:
+  dashboards:
+    rearc_quest_dashboard:
+      display_name: 'Rearc Data Quest'
+      file_path: ../dashboards/rearc_quest_dashboard.lvdash.json
+      warehouse_id: ${var.warehouse_id}
+      dataset_catalog: ${var.catalog}
+      dataset_schema: ${var.gold_schema}
