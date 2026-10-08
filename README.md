@@ -181,6 +181,11 @@ databricks bundle run rearc_quest_tests --target dev   # on serverless, no local
 The serverless runner copies sources to a temp directory first, because pytest's
 assertion rewriter cannot write `__pycache__` into a `/Workspace` path.
 
+The serverless job exists so the suite is runnable without a local Spark install. It is
+not how this would be run for a real client — there, pytest runs in CI on every pull
+request and gates the merge, and the runner file is unnecessary. See *Trade-offs* in
+[PROCESS.md](PROCESS.md).
+
 ## Dashboard and Genie
 
 Both are deployed by the bundle and follow the target's catalog:

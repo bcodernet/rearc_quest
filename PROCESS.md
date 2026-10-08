@@ -86,6 +86,9 @@ pytest tests/                                      # locally, with Spark install
 databricks bundle run rearc_quest_tests --target dev   # on serverless, no local JDK needed
 ```
 
+The serverless job is a convenience for this submission, not a recommendation — for a
+real client these tests run in CI on every pull request. See *Trade-offs*.
+
 ### Re-running Ingestion Safely
 
 The ingestion job is safe to re-run at any time. Specifically:
@@ -218,6 +221,35 @@ if someone opens the pipeline UI. For a real client those feed an alert, togethe
 freshness bounds on the gold tables, so a pipeline that succeeds while quietly dropping
 half its rows is not indistinguishable from a healthy one.
 
+**The serverless test job is a stand-in for CI, and would not survive contact with a
+real client.** `rearc_quest_tests` exists for two reasons specific to this submission:
+there is no local JDK and pyspark install on the machine this was built on, and a suite
+a reviewer can actually execute is worth more than one they have to take on trust. For a
+client, unit tests belong in a CI pipeline — pytest on a build runner, on every pull
+request, gating the merge — and `databricks bundle deploy` runs from that same pipeline
+under a service principal rather than from somebody's laptop.
+
+The job is the wrong shape for production in four specific ways:
+
+- It spends serverless compute to do what a CI runner does for free.
+- It can only run *after* a deploy, so it tests an artifact that has already shipped
+  instead of blocking the change that breaks it.
+- A failing suite surfaces as a red job run that someone has to notice, rather than a
+  pull request that cannot be merged.
+- It needs the workspace to be reachable at all, which couples a pure-logic test suite
+  to infrastructure availability.
+
+Most of the awkwardness in `tests/run_tests.py` is a symptom of that mismatch. The
+copy-to-temp-directory dance exists only because pytest cannot write `__pycache__` to a
+`/Workspace` path; on a CI runner with an ordinary writable filesystem, the runner file
+disappears and `pytest tests/` is the whole story.
+
+What *would* justify a Databricks job is integration testing — asserting against real
+Unity Catalog tables after a deploy, which genuinely needs a workspace. Unit tests over
+pure functions do not, and conflating the two is how test suites end up slow and
+flaky. The split in this repo is already the right one; only the execution venue is
+wrong.
+
 **`prod` shares one workspace with `dev`.** This is a trial account, so the catalog is
 the isolation boundary: `prod` publishes to the `prod` catalog and never touches dev
 data. That is genuine isolation for tables, but it is not a production topology — a real
@@ -273,12 +305,16 @@ The test runner copies sources to a temp directory first.
 1. **Make the Unity Catalog objects bundle-managed.** This is first because it is the
    only remaining item that stops the repo from being deployable by someone who is not
    me — a fresh clone cannot create the volume the ingestion writes into.
-2. **Alert on the pipeline event log**, not just on job failure. Expectation results and
+2. **Move the tests into CI** and deploy from there under a service principal. Running
+   pytest on every pull request gates the change that breaks something, rather than
+   reporting it after the artifact has already shipped, and it retires the serverless
+   test job along with the `/Workspace` workaround in `tests/run_tests.py`.
+3. **Alert on the pipeline event log**, not just on job failure. Expectation results and
    dropped-record counts are recorded and currently unwatched, so a run that succeeds
    while quietly dropping rows looks identical to a healthy one.
-3. **Widen the data-quality expectations** — schema hints and a rescue column at Bronze,
+4. **Widen the data-quality expectations** — schema hints and a rescue column at Bronze,
    a check that the silver lookup joins actually resolved, and row-count bounds.
-4. **Scope access control**: `SELECT` on gold for analysts, a service principal rather
+5. **Scope access control**: `SELECT` on gold for analysts, a service principal rather
    than my user as the run-as identity, and write access scoped to the raw volume.
 
 ## AI Usage Disclosure
