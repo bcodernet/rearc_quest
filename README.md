@@ -109,7 +109,7 @@ Both targets share one workspace; the catalog is the isolation boundary.
 | Schema | Tables |
 |--------|--------|
 | `bronze` | `bronze_bls_data`, `bronze_bls_series`, `bronze_bls_sector`, `bronze_bls_class`, `bronze_bls_measure`, `bronze_bls_duration`, `bronze_population` |
-| `silver` | `silver_bls`, `silver_population` |
+| `silver` | `silver_bls`, `silver_population`, `silver_population_coverage` |
 | `gold` | `gold_q1_pop_stats`, `gold_q2_best_year`, `gold_q3_value_pop` |
 
 The pipeline's default schema is `bronze`; the silver and gold datasets publish to their

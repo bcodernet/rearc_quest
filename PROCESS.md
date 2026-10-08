@@ -30,7 +30,7 @@ DataUSA API ┘   (raw files)           └─ dev.gold.*    (3 tables) ─> das
 | Layer | Purpose | Key transformations |
 |-------|---------|-------------------|
 | Bronze | Raw ingestion from volume files | Batch `spark.read` per file, tab-delimited parsing, column-name trimming, two `expect_or_drop` constraints |
-| Silver | Clean, typed, deduped | Type casting, `trim()` on padded code columns, dedup by natural key, joins to 4 lookup tables for human-readable labels |
+| Silver | Clean, typed, deduped | Type casting, `trim()` on padded code columns, dedup by natural key, joins to 4 lookup tables for human-readable labels, plus a year-coverage check (see Trade-offs) |
 | Gold | Analytical answers | Q1/Q2/Q3, each a thin wrapper over a unit-tested pure function |
 
 **Bronze deliberately does not use Auto Loader.** `cloudFiles` exists to process new
@@ -65,15 +65,16 @@ that; SDP now derives bronze → silver → gold ordering from the table depende
   programmatic flexibility — the Q2 period logic below is substantially clearer as
   composed DataFrame operations than as SQL — and because it lets the transformation
   logic be extracted into plain functions that unit-test off-cluster.
-- **Alternative**: SQL equivalents of the three gold queries are documented in
-  `src/sql_alternatives/`. They are illustrative, not loaded into the running pipeline.
+- **Alternative**: SQL equivalents of the three gold queries are in
+  `src/sql_alternatives/`. They are verified against the PySpark output, not sketches —
+  see *Trade-offs* — but are deliberately not loaded into the running pipeline.
 
 ### Testing
 
 `src/pipeline/gold/transformations.py` holds the gold logic as three pure
 `DataFrame -> DataFrame` functions that touch no pipeline API, no `spark.conf`, and no
 table names. The gold pipeline files are thin I/O wrappers around them. That split is
-what makes `tests/test_transformations.py` possible: 8 tests that feed hand-built
+what makes `tests/test_transformations.py` possible: 9 tests that feed hand-built
 DataFrames through the same functions the pipeline calls.
 
 Two are regression tests for bugs this project actually shipped (see Retrospective).
@@ -200,11 +201,22 @@ runs as a service principal rather than my user, and the ingestion job's write a
 scoped to the raw volume. The Genie space grants `CAN_RUN` to `users`, which is the only
 access control in the project and is too broad for anything real.
 
-**Monitoring and alerting are absent.** There is no schedule on the ingestion job and no
-failure notification. Both are a few lines of YAML and were left out to keep a trial
-workspace quiet; in production the job runs on a daily cron with
-`email_notifications.on_failure`, and the pipeline's event log feeds an alert on dropped
-records and on gold tables going stale.
+**Monitoring is partial.** The ingestion job has a daily 07:00 UTC schedule and
+`email_notifications.on_failure`, and the tests job notifies on failure too. The
+schedule is committed with `pause_status: PAUSED` — this is a trial workspace, and an
+unattended daily run would spend serverless compute for nothing, but the schedule
+belongs in code rather than being omitted. Flip to `UNPAUSED` to activate.
+
+The failure notification matters more than it looks, because the ingestion task now
+fails hard on any download error: without an alert that just becomes a silently red run
+while the gold tables keep serving the previous load.
+
+What is still missing is everything beyond job-level failure. The pipeline's event log
+records dropped records and expectation results, and nothing watches it — so the
+`no_year_gap` warning and the two Bronze `expect_or_drop` constraints are visible only
+if someone opens the pipeline UI. For a real client those feed an alert, together with
+freshness bounds on the gold tables, so a pipeline that succeeds while quietly dropping
+half its rows is not indistinguishable from a healthy one.
 
 **`prod` shares one workspace with `dev`.** This is a trial account, so the catalog is
 the isolation boundary: `prod` publishes to the `prod` catalog and never touches dev
@@ -256,10 +268,18 @@ shape. And pytest cannot run from a `/Workspace` path at all — its assertion r
 writes `__pycache__` beside each test module, and Workspace files do not support `mkdir`.
 The test runner copies sources to a temp directory first.
 
-**What I would do next, in order:** make the UC objects bundle-managed, add the schedule
-and failure alerts, then widen data-quality expectations — in that order, because the
-first one is what currently stops this repo from being deployable by someone who is not
-me.
+**What I would do next, in order:**
+
+1. **Make the Unity Catalog objects bundle-managed.** This is first because it is the
+   only remaining item that stops the repo from being deployable by someone who is not
+   me — a fresh clone cannot create the volume the ingestion writes into.
+2. **Alert on the pipeline event log**, not just on job failure. Expectation results and
+   dropped-record counts are recorded and currently unwatched, so a run that succeeds
+   while quietly dropping rows looks identical to a healthy one.
+3. **Widen the data-quality expectations** — schema hints and a rescue column at Bronze,
+   a check that the silver lookup joins actually resolved, and row-count bounds.
+4. **Scope access control**: `SELECT` on gold for analysts, a service principal rather
+   than my user as the run-as identity, and write access scoped to the raw volume.
 
 ## AI Usage Disclosure
 
