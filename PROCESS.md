@@ -27,11 +27,11 @@ DataUSA API ┘   (raw files)           └─ dev.gold.*    (3 tables) ─> das
 
 ### Medallion Architecture (Step 2)
 
-| Layer | Purpose | Key transformations |
-|-------|---------|-------------------|
-| Bronze | Raw ingestion from volume files | Batch `spark.read` per file, tab-delimited parsing, column-name trimming, two `expect_or_drop` constraints |
-| Silver | Clean, typed, deduped | Type casting, `trim()` on padded code columns, dedup by natural key, joins to 4 lookup tables for human-readable labels, plus a year-coverage check (see Trade-offs) |
-| Gold | Analytical answers | Q1/Q2/Q3, each a thin wrapper over a unit-tested pure function |
+| Layer  | Purpose                         | Key transformations                                                                                                                                                  |
+| ------ | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Bronze | Raw ingestion from volume files | Batch `spark.read` per file, tab-delimited parsing, column-name trimming, two `expect_or_drop` constraints                                                           |
+| Silver | Clean, typed, deduped           | Type casting, `trim()` on padded code columns, dedup by natural key, joins to 4 lookup tables for human-readable labels, plus a year-coverage check (see Trade-offs) |
+| Gold   | Analytical answers              | Q1/Q2/Q3, each a thin wrapper over a unit-tested pure function                                                                                                       |
 
 **Bronze deliberately does not use Auto Loader.** `cloudFiles` exists to process new
 files incrementally and to carry schema inference state across runs. The entire BLS
@@ -67,7 +67,7 @@ that; SDP now derives bronze → silver → gold ordering from the table depende
   logic be extracted into plain functions that unit-test off-cluster.
 - **Alternative**: SQL equivalents of the three gold queries are in
   `src/sql_alternatives/`. They are verified against the PySpark output, not sketches —
-  see *Trade-offs* — but are deliberately not loaded into the running pipeline.
+  see _Trade-offs_ — but are deliberately not loaded into the running pipeline.
 
 ### Testing
 
@@ -87,7 +87,7 @@ databricks bundle run rearc_quest_tests --target dev   # on serverless, no local
 ```
 
 The serverless job is a convenience for this submission, not a recommendation — for a
-real client these tests run in CI on every pull request. See *Trade-offs*.
+real client these tests run in CI on every pull request. See _Trade-offs_.
 
 ### Re-running Ingestion Safely
 
@@ -137,12 +137,12 @@ Whether this landing zone should mirror the source or archive its history is a
 business and compliance decision, not a technical default, and it needs a real answer
 before production. The answer drives the design:
 
-| If the requirement is | Then |
-|---|---|
-| Mirror the source | Set `RETAIN_UNPUBLISHED_FILES = False`. Simplest, least storage, no history. |
-| Full reproducibility | Land into date-partitioned prefixes (`raw/bls/ingest_date=YYYY-MM-DD/`), so each run is a point-in-time snapshot and Bronze reads the latest. Costs storage. |
-| Clean active set, keep data | Soft-delete: move retired files to `raw/bls/_retired/` with the retirement date. |
-| Queryable retirement history | A manifest table recording `first_seen` / `last_seen` per filename, leaving the files alone. |
+| If the requirement is        | Then                                                                                                                                                         |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Mirror the source            | Set `RETAIN_UNPUBLISHED_FILES = False`. Simplest, least storage, no history.                                                                                 |
+| Full reproducibility         | Land into date-partitioned prefixes (`raw/bls/ingest_date=YYYY-MM-DD/`), so each run is a point-in-time snapshot and Bronze reads the latest. Costs storage. |
+| Clean active set, keep data  | Soft-delete: move retired files to `raw/bls/_retired/` with the retirement date.                                                                             |
+| Queryable retirement history | A manifest table recording `first_seen` / `last_seen` per filename, leaving the files alone.                                                                 |
 
 **The known weakness of the retain default**, stated plainly: Bronze reads a fixed set
 of filenames. If BLS retired one of them — say `pr.measure` — Bronze would keep reading
@@ -178,7 +178,7 @@ resolved (they do today — zero nulls across all four label columns — but not
 tell us if that changed), and no row-count or freshness bounds anywhere.
 
 The one non-obvious piece is `silver.silver_population_coverage`. A row-level
-expectation cannot detect a *missing* row, so the gap is computed into a `year_gap`
+expectation cannot detect a _missing_ row, so the gap is computed into a `year_gap`
 column via `lag()` first, and the expectation asserts `year_gap = 1`. It warns rather
 than drops — a gap is real upstream data, not a defect to filter away — and it currently
 flags exactly one row: 2021, with a gap of 2, because the Census never published ACS
@@ -232,7 +232,7 @@ under a service principal rather than from somebody's laptop.
 The job is the wrong shape for production in four specific ways:
 
 - It spends serverless compute to do what a CI runner does for free.
-- It can only run *after* a deploy, so it tests an artifact that has already shipped
+- It can only run _after_ a deploy, so it tests an artifact that has already shipped
   instead of blocking the change that breaks it.
 - A failing suite surfaces as a red job run that someone has to notice, rather than a
   pull request that cannot be merged.
@@ -244,7 +244,7 @@ copy-to-temp-directory dance exists only because pytest cannot write `__pycache_
 `/Workspace` path; on a CI runner with an ordinary writable filesystem, the runner file
 disappears and `pytest tests/` is the whole story.
 
-What *would* justify a Databricks job is integration testing — asserting against real
+What _would_ justify a Databricks job is integration testing — asserting against real
 Unity Catalog tables after a deploy, which genuinely needs a workspace. Unit tests over
 pure functions do not, and conflating the two is how test suites end up slow and
 flaky. The split in this repo is already the right one; only the execution venue is
@@ -268,7 +268,7 @@ and only one of them can be the unit-tested one.
 ## Retrospective
 
 **What was hardest to get right: the BLS period semantics.** The `pr` dataset carries
-periods Q01–Q05, and Q05 is the *annual average*, not a fifth quarter. Summing all five
+periods Q01–Q05, and Q05 is the _annual average_, not a fifth quarter. Summing all five
 inflates every yearly total and changed the reported best year for 7 of 282 series. The
 first fix — `period != 'Q05'` — was also wrong, and worse in a quieter way: 45 of the 282
 series publish only Q05 and have no quarterly rows at all, so that filter silently
@@ -318,8 +318,6 @@ The test runner copies sources to a temp directory first.
    than my user as the run-as identity, and write access scoped to the raw volume.
 
 ## AI Usage Disclosure
-
-> Drafted from the session record — please review and edit before submitting.
 
 AI assistance was used substantially throughout this project, in two distinct phases.
 
